@@ -3,9 +3,11 @@ from django.contrib.auth import authenticate, login, logout
 from django.views import View
 from .forms import UserSignup, UserLogin
 from .models import Event
+from django.contrib import messages
+
 def home(request):
     return render(request, 'home.html')
-
+#------------------------>CRUD<-------------------------
 class Signup(View):
     form_class = UserSignup
     template_name = 'signup.html'
@@ -58,8 +60,52 @@ class Logout(View):
         logout(request)
         messages.success(request, "You have successfully logged out.")
         return redirect("login")
-
-class EventList(View):
+#------------------>Auth end<----------------------
+def EventList(request):
     context = {
     'events' : Event.objects.all()
     }
+    return render(request , "home.html" , context )
+#--------------->CRUD<-------------------
+def EventDetail(request , event_id):
+    context ={
+    "event" : Event.objects.get(id = event_id)
+    }
+    return render(request , "eventdetail.html", context)
+
+def EventUpdate(request , event_id):
+    event = Event.objects.get(id=event_id)
+    form = EventForm(instance=event)
+    if request.method == "POST":
+        form = EventForm(request.POST, request.FILES or None, instance=event)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Successfully Edited!")
+        return redirect('event-list')
+        print (form.errors)
+    context ={
+    "event" : Event.objects.get(id = event_id)
+    }
+    return render(request , "eventdetail.html", context)
+
+def EventCreate(request):
+    form = EventForm()
+    if request.method == "POST":
+        form = EventForm(request.POST , request.FILES or None )
+        if form.is_valid():
+            event = form.save(commit = False)
+            event.owner = request.user
+            event.save()
+            messages.success(request, "Successfully Added!")
+            return redirect('event-list')
+    context = {
+    "events" : Event.objects.all()
+    }
+    return render(request , 'home.html' , context)
+
+def EventDelete(request , event_id ):
+    Event.object.get(id = event_id).delete()
+    messages.success(request, "Successfully Deleted!")
+    return redirect("event-list")
+
+#--------->Crud End<------------------
